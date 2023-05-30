@@ -1,4 +1,5 @@
 import {Component} from 'react'
+import GameResult from './components/GameResult'
 import Header from './components/Header'
 import TabItem from './components/TabItem'
 import ThumbnailItem from './components/ThumbnailItem'
@@ -256,8 +257,29 @@ class App extends Component {
     activeTabId: tabsList[0].tabId,
     score: 0,
     timer: 60,
-
+    currentImageId: imagesList[0].id,
+    isGameResult: false,
     imgUrl: imagesList[0].imageUrl,
+  }
+
+  componentDidMount() {
+    this.setTimerInterval()
+  }
+
+  clearIntervalId = () => clearInterval(this.timerId)
+
+  setTimerInterval = () => {
+    this.timerId = setInterval(this.setTimer, 1000)
+  }
+
+  setTimer = () => {
+    const {timer} = this.state
+    if (timer > 0) {
+      this.setState({timer: timer - 1})
+    } else {
+      clearInterval(this.timerId)
+      this.setState({isGameResult: true})
+    }
   }
 
   getFilteredImages = () => {
@@ -275,36 +297,85 @@ class App extends Component {
     })
   }
 
+  getRandomImage = () => {
+    const index = Math.floor(Math.random() * imagesList.length)
+    const currentImageId = imagesList[index].id
+    const {score} = this.state
+    this.setState({
+      currentImageId,
+      imgUrl: imagesList[index].imageUrl,
+      score: score + 1,
+    })
+  }
+
+  onClickGameResult = () => {
+    this.setState(
+      {
+        activeTabId: tabsList[0].tabId,
+        score: 0,
+        timer: 60,
+        currentImageId: imagesList[0].id,
+        isGameResult: false,
+        imgUrl: imagesList[0].imageUrl,
+      },
+      this.setTimerInterval,
+    )
+  }
+
+  onClickThumbnail = id => {
+    const {currentImageId} = this.state
+    if (id !== currentImageId) {
+      clearInterval(this.timerId)
+      this.setState({isGameResult: true})
+    } else {
+      this.getRandomImage()
+    }
+  }
+
   render() {
-    const {score, timer, activeTabId, imgUrl} = this.state
+    const {
+      score,
+      timer,
+      activeTabId,
+      currentImageId,
+      imgUrl,
+      isGameResult,
+    } = this.state
     const filteredImages = this.getFilteredImages()
 
     return (
       <div className="app-container">
         <Header score={score} timer={timer} />
-        <div className="game-container">
-          <img className="big-image" src={imgUrl} alt="match" />
+        {isGameResult ? (
+          <GameResult
+            score={score}
+            onClickGameResult={this.onClickGameResult}
+          />
+        ) : (
+          <div className="game-container">
+            <img className="big-image" src={imgUrl} alt="match" />
 
-          <ul className="tabs-container">
-            {tabsList.map(tabDetails => (
-              <TabItem
-                key={tabDetails.tabId}
-                tabDetails={tabDetails}
-                updateActiveTabId={this.updateActiveTabId}
-                isActive={tabDetails.tabId === activeTabId}
-              />
-            ))}
-          </ul>
-
-          <ul className="thumbnailItem-list-container">
-            {filteredImages.map(thumbnailDetails => (
-              <ThumbnailItem
-                key={thumbnailDetails.id}
-                thumbnailDetails={thumbnailDetails}
-              />
-            ))}
-          </ul>
-        </div>
+            <ul className="tabs-container">
+              {tabsList.map(tabDetails => (
+                <TabItem
+                  key={tabDetails.tabId}
+                  tabDetails={tabDetails}
+                  updateActiveTabId={this.updateActiveTabId}
+                  isActive={tabDetails.tabId === activeTabId}
+                />
+              ))}
+            </ul>
+            <ul className="thumbnailItem-list-container">
+              {filteredImages.map(thumbnailDetails => (
+                <ThumbnailItem
+                  onClickThumbnail={this.onClickThumbnail}
+                  key={thumbnailDetails.id}
+                  thumbnailDetails={thumbnailDetails}
+                />
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
     )
   }
